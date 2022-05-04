@@ -59,5 +59,36 @@ app.post("/cadastrar", async (req, res) => {
     }
 })
 
+app.post("/login", async (req, res) => {
+    const { senha } = req.body;
+    let email = stripHtml(req.body.email).result.trim();
+
+    const schema = joi.object({
+        email: joi.string().pattern(/[a-z0-9!#$%&'*+\=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/).required()
+    })
+    const validacao = schema.validate({ email }, { abortEarly: false });
+    if (validacao.error) {
+        console.log(chalk.bold.red("Erro login/joi"), validacao.error.details)
+        res.sendStatus(422);
+        return;
+    }
+
+    try {
+        await mongoClient.connect();
+        const usuario = await dbCarteira.collection('usuarios').findOne({ email });
+        if(usuario && bcrypt.compareSync(senha, usuario.senha)) {
+            res.sendStatus(200);
+        } else {
+            // usuário não encontrado (email ou senha incorretos)
+            res.sendStatus(409);
+        }
+
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
+
+})
+
 const port = process.env.PORT || 5000;
 app.listen(port, console.log(chalk.bold.blue(` Servidor rodando na porta ${port}`)));
