@@ -1,4 +1,4 @@
-import express, {json} from "express";
+import express, { json } from "express";
 import cors from "cors";
 import chalk from "chalk";
 import dotenv from "dotenv";
@@ -16,11 +16,11 @@ app.use(cors());
 app.use(json());
 
 app.post("/cadastrar", async (req, res) => {
-    const {senha, senhaverificar} = req.body;
+    const { senha, verificarSenha } = req.body;
     const nome = stripHtml(req.body.email).result.trim();
     const email = stripHtml(req.body.email).result.trim();
 
-    if(senha !== senhaverificar){
+    if (senha !== verificarSenha) {
         console.log('senhas diferentes')
         res.sendStatus(406);
         return;
@@ -30,7 +30,7 @@ app.post("/cadastrar", async (req, res) => {
         nome: joi.string().required(),
         email: joi.string().required(),
         senha: joi.string().required(),
-        senhaverificar: joi.string().required()
+        verificarSenha: joi.string().required()
     })
     const validacao = schema.validate(req.body, { abortEarly: false })
 
@@ -44,13 +44,13 @@ app.post("/cadastrar", async (req, res) => {
     try {
         await mongoClient.connect();
         const usuariosCollection = dbCarteira.collection('usuarios');
-        const temUsuario = await usuariosCollection.findOne({ email: email });
-        if(temUsuario){
+        const temEmail = await usuariosCollection.findOne({ email: email });
+        if (temEmail) {
             console.log(chalk.bold.red("O email já existe"));
             res.status(409).send("Email já cadastrado");
             return;
         }
-        await usuariosCollection.insertOne({nome, email, senha: senhaCriptografada});
+        await usuariosCollection.insertOne({ nome, email, senha: senhaCriptografada });
         res.sendStatus(201);
     } catch (error) {
         console.log(error);
