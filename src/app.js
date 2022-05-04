@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { MongoClient } from "mongodb";
 import joi from "joi";
 import bcrypt from 'bcrypt';
+import { stripHtml } from "string-strip-html";
 
 dotenv.config();
 const mongoClient = new MongoClient(process.env.MONGO_URI);
@@ -15,16 +16,21 @@ app.use(cors());
 app.use(json());
 
 app.post("/cadastrar", async (req, res) => {
-    const {email , senha, senhaverificada} = req.body;
-    if(senha !== senhaverificada){
+    const {senha, senhaverificar} = req.body;
+    const nome = stripHtml(req.body.email).result.trim();
+    const email = stripHtml(req.body.email).result.trim();
+
+    if(senha !== senhaverificar){
         console.log('senhas diferentes')
         res.sendStatus(406);
         return;
     }
+
     const schema = joi.object({
+        nome: joi.string().required(),
         email: joi.string().required(),
         senha: joi.string().required(),
-        senhaverificada: joi.string().required()
+        senhaverificar: joi.string().required()
     })
     const validacao = schema.validate(req.body, { abortEarly: false })
 
@@ -44,7 +50,7 @@ app.post("/cadastrar", async (req, res) => {
             res.status(409).send("Email já cadastrado");
             return;
         }
-        await usuariosCollection.insertOne({email, senha: senhaCriptografada});
+        await usuariosCollection.insertOne({nome, email, senha: senhaCriptografada});
         res.sendStatus(201);
     } catch (error) {
         console.log(error);
