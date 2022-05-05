@@ -145,5 +145,38 @@ app.post('/debito', async (req, res) => {
    }
 })
 
+app.get('/registros', async (req, res) =>{
+    const { authorization } = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+
+    if(!token){return res.sendStatus(401)};
+    
+    try {
+        await mongoClient.connect();
+        const sessoesCollection = dbCarteira.collection("sessoes");
+        const temUsuario = await sessoesCollection.findOne({ token: token });
+       
+        if(!temUsuario){
+            res.sendStatus(406);
+            return;
+        }
+
+        const usuarioId = temUsuario.usuarioId;
+        const carteiraCollection = dbCarteira.collection("registros");
+        const registros = await carteiraCollection.find({ usuarioId }).toArray();
+        registros.forEach(registro => {delete registro.usuarioId;});
+        if(registros) {
+            console.log(registros);
+            res.status(200).send(registros);
+            return;
+      } else {
+            res.sendStatus(401);
+      }
+   } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+   }
+})
+
 const port = process.env.PORT || 5000;
 app.listen(port, console.log(chalk.bold.blue(` Servidor rodando na porta ${port}`)));
