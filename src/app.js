@@ -97,8 +97,7 @@ app.post("/login", async (req, res) => {
 app.post('/credito', async (req, res) => {
     const { authorization } = req.headers;
     const token = authorization?.replace('Bearer ', '');
-    const dataAtual = dayjs().locale('pt-br').format('dddd, DD/MM')
-    console.log(dataAtual);
+
     if(!token){return res.sendStatus(401)};
  
    try {
