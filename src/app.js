@@ -6,6 +6,7 @@ import { MongoClient } from "mongodb";
 import joi from "joi";
 import bcrypt from 'bcrypt';
 import { stripHtml } from "string-strip-html";
+import { v4 as uuid } from 'uuid';
 
 dotenv.config();
 const mongoClient = new MongoClient(process.env.MONGO_URI);
@@ -28,7 +29,7 @@ app.post("/cadastrar", async (req, res) => {
 
     const schema = joi.object({
         nome: joi.string().required(),
-        email: joi.string().required(),
+        email: joi.string().email().required(),
         senha: joi.string().required(),
         verificarSenha: joi.string().required()
     })
@@ -64,7 +65,7 @@ app.post("/login", async (req, res) => {
     let email = stripHtml(req.body.email).result.trim();
 
     const schema = joi.object({
-        email: joi.string().pattern(/[a-z0-9!#$%&'*+\=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+\=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/).required()
+        email: joi.string().email().required()
     })
     const validacao = schema.validate({ email }, { abortEarly: false });
     if (validacao.error) {
@@ -76,8 +77,10 @@ app.post("/login", async (req, res) => {
     try {
         await mongoClient.connect();
         const usuario = await dbCarteira.collection('usuarios').findOne({ email });
-        if(usuario && bcrypt.compareSync(senha, usuario.senha)) {
-            res.sendStatus(200);
+        if (usuario && bcrypt.compareSync(senha, usuario.senha)) {
+            const token = uuid();
+            await dbCarteira.collection('sessoes').insertOne({ usuarioId: usuario._id, token });
+            res.status(200).send(token);
         } else {
             // usuário não encontrado (email ou senha incorretos)
             res.sendStatus(409);
