@@ -2,11 +2,12 @@ import express, { json } from "express";
 import cors from "cors";
 import chalk from "chalk";
 import dotenv from "dotenv";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import joi from "joi";
 import bcrypt from 'bcrypt';
 import { stripHtml } from "string-strip-html";
 import { v4 as uuid } from 'uuid';
+
 
 dotenv.config();
 const mongoClient = new MongoClient(process.env.MONGO_URI);
@@ -51,7 +52,7 @@ app.post("/cadastrar", async (req, res) => {
             res.status(409).send("Email já cadastrado");
             return;
         }
-        await usuariosCollection.insertOne({ nome, email, senha: senhaCriptografada });
+        await usuariosCollection.insertOne({ nome, email, senha: senhaCriptografada});
         res.sendStatus(201);
     } catch (error) {
         console.log(error);
@@ -91,6 +92,58 @@ app.post("/login", async (req, res) => {
         res.sendStatus(500);
     }
 
+})
+
+app.post('/credito', async (req, res) => {
+    const { authorization } = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+    const dataAtual = dayjs().locale('pt-br').format('dddd, DD/MM')
+    console.log(dataAtual);
+    if(!token){return res.sendStatus(401)};
+ 
+   try {
+        await mongoClient.connect();
+        const sessoesCollection = dbCarteira.collection("sessoes");
+        const temUsuario = await sessoesCollection.findOne({ token: token });
+       
+        if(!temUsuario){
+            res.sendStatus(406);
+            return;
+        }
+
+        const usuarioId = temUsuario.usuarioId;
+        const carteiraCollection = dbCarteira.collection("registros");
+        await carteiraCollection.insertOne({...req.body, usuarioId});
+        res.sendStatus(201);
+   } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+   }
+})
+
+app.post('/debito', async (req, res) => {
+    const { authorization } = req.headers;
+    const token = authorization?.replace('Bearer ', '');
+    if(!token){return res.sendStatus(401)};
+ 
+   try {
+        await mongoClient.connect();
+        const sessoesCollection = dbCarteira.collection("sessoes");
+        const temUsuario = await sessoesCollection.findOne({ token: token });
+       
+        if(!temUsuario){
+            res.sendStatus(406);
+            return;
+        }
+
+        const usuarioId = temUsuario.usuarioId;
+        const carteiraCollection = dbCarteira.collection("registros");
+        await carteiraCollection.insertOne({...req.body, usuarioId});
+        res.sendStatus(201);
+   } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+   }
 })
 
 const port = process.env.PORT || 5000;
