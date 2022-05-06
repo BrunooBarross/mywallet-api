@@ -17,9 +17,9 @@ const app = express();
 app.use(cors());
 app.use(json());
 
-app.post("/cadastrar", async (req, res) => {
+app.post("/cadastro", async (req, res) => {
     const { senha, verificarSenha } = req.body;
-    const nome = stripHtml(req.body.email).result.trim();
+    const nome = stripHtml(req.body.nome).result.trim();
     const email = stripHtml(req.body.email).result.trim();
 
     if (senha !== verificarSenha) {
@@ -81,7 +81,7 @@ app.post("/login", async (req, res) => {
         if (usuario && bcrypt.compareSync(senha, usuario.senha)) {
             const token = uuid();
             await dbCarteira.collection('sessoes').insertOne({ usuarioId: usuario._id, token });
-            res.status(200).send(token);
+            res.status(200).send({token:token, nome: usuario.nome});
         } else {
             // usuário não encontrado (email ou senha incorretos)
             res.sendStatus(409);
@@ -94,7 +94,7 @@ app.post("/login", async (req, res) => {
 
 })
 
-app.post('/credito', async (req, res) => {
+app.post('/registro', async (req, res) => {
     const { authorization } = req.headers;
     const token = authorization?.replace('Bearer ', '');
 
@@ -120,32 +120,7 @@ app.post('/credito', async (req, res) => {
    }
 })
 
-app.post('/debito', async (req, res) => {
-    const { authorization } = req.headers;
-    const token = authorization?.replace('Bearer ', '');
-    if(!token){return res.sendStatus(401)};
- 
-   try {
-        await mongoClient.connect();
-        const sessoesCollection = dbCarteira.collection("sessoes");
-        const temUsuario = await sessoesCollection.findOne({ token: token });
-       
-        if(!temUsuario){
-            res.sendStatus(406);
-            return;
-        }
-
-        const usuarioId = temUsuario.usuarioId;
-        const carteiraCollection = dbCarteira.collection("registros");
-        await carteiraCollection.insertOne({...req.body, usuarioId});
-        res.sendStatus(201);
-   } catch (error) {
-        console.log(error);
-        res.sendStatus(500);
-   }
-})
-
-app.get('/registros', async (req, res) =>{
+app.get('/registro', async (req, res) =>{
     const { authorization } = req.headers;
     const token = authorization?.replace('Bearer ', '');
 
@@ -164,10 +139,10 @@ app.get('/registros', async (req, res) =>{
         const usuarioId = temUsuario.usuarioId;
         const carteiraCollection = dbCarteira.collection("registros");
         const registros = await carteiraCollection.find({ usuarioId }).toArray();
-        registros.forEach(registro => {delete registro.usuarioId;});
+        registros.forEach(registro => {delete registro.usuarioId});
         if(registros) {
             console.log(registros);
-            res.status(200).send(registros);
+            res.status(200).send([...registros]);
             return;
       } else {
             res.sendStatus(401);
