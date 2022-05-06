@@ -2,16 +2,13 @@ import express, { json } from "express";
 import cors from "cors";
 import chalk from "chalk";
 import dotenv from "dotenv";
-import { MongoClient, ObjectId } from "mongodb";
 import joi from "joi";
 import bcrypt from 'bcrypt';
 import { stripHtml } from "string-strip-html";
 import { v4 as uuid } from 'uuid';
-
+import db from "./db.js"
 
 dotenv.config();
-const mongoClient = new MongoClient(process.env.MONGO_URI);
-const dbCarteira = mongoClient.db("carteira");
 
 const app = express();
 app.use(cors());
@@ -44,8 +41,7 @@ app.post("/cadastro", async (req, res) => {
 
     const senhaCriptografada = bcrypt.hashSync(senha, 10);
     try {
-        await mongoClient.connect();
-        const usuariosCollection = dbCarteira.collection('usuarios');
+        const usuariosCollection = db.collection('usuarios');
         const temEmail = await usuariosCollection.findOne({ email: email });
         if (temEmail) {
             console.log(chalk.bold.red("O email já existe"));
@@ -76,11 +72,10 @@ app.post("/login", async (req, res) => {
     }
 
     try {
-        await mongoClient.connect();
-        const usuario = await dbCarteira.collection('usuarios').findOne({ email });
+        const usuario = await db.collection('usuarios').findOne({ email });
         if (usuario && bcrypt.compareSync(senha, usuario.senha)) {
             const token = uuid();
-            await dbCarteira.collection('sessoes').insertOne({ usuarioId: usuario._id, token });
+            await db.collection('sessoes').insertOne({ usuarioId: usuario._id, token });
             res.status(200).send({token:token, nome: usuario.nome});
         } else {
             // usuário não encontrado (email ou senha incorretos)
@@ -101,8 +96,7 @@ app.post('/registro', async (req, res) => {
     if(!token){return res.sendStatus(401)};
  
    try {
-        await mongoClient.connect();
-        const sessoesCollection = dbCarteira.collection("sessoes");
+        const sessoesCollection = db.collection("sessoes");
         const temUsuario = await sessoesCollection.findOne({ token: token });
        
         if(!temUsuario){
@@ -111,7 +105,7 @@ app.post('/registro', async (req, res) => {
         }
 
         const usuarioId = temUsuario.usuarioId;
-        const carteiraCollection = dbCarteira.collection("registros");
+        const carteiraCollection = db.collection("registros");
         await carteiraCollection.insertOne({...req.body, usuarioId});
         res.sendStatus(201);
    } catch (error) {
@@ -127,8 +121,7 @@ app.get('/registro', async (req, res) =>{
     if(!token){return res.sendStatus(401)};
     
     try {
-        await mongoClient.connect();
-        const sessoesCollection = dbCarteira.collection("sessoes");
+        const sessoesCollection = db.collection("sessoes");
         const temUsuario = await sessoesCollection.findOne({ token: token });
        
         if(!temUsuario){
@@ -137,16 +130,15 @@ app.get('/registro', async (req, res) =>{
         }
 
         const usuarioId = temUsuario.usuarioId;
-        const carteiraCollection = dbCarteira.collection("registros");
+        const carteiraCollection = db.collection("registros");
         const registros = await carteiraCollection.find({ usuarioId }).toArray();
         registros.forEach(registro => {delete registro.usuarioId});
         if(registros) {
-            console.log(registros);
             res.status(200).send([...registros]);
             return;
-      } else {
-            res.sendStatus(401);
-      }
+      } 
+        return res.sendStatus(401);
+      
    } catch (error) {
         console.log(error);
         res.sendStatus(500);
