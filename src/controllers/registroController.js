@@ -1,4 +1,5 @@
 import db from ".././db.js";
+import { ObjectId } from "mongodb";
 
 export async function postRegistro(req, res){
     const { authorization } = req.headers;
@@ -54,4 +55,24 @@ export async function getRegistro(req, res){
         console.log(error);
         res.sendStatus(500);
    }
+}
+export async function deleteRegistro(req, res){
+    const { authorization } = req.headers;
+    const id = req.params.id;
+    const token = authorization?.replace('Bearer ', '');
+    if(!token){return res.sendStatus(401)};
+    try {
+        const registrosCollection = db.collection("registros");
+        const temRegistro = await registrosCollection.findOne({ _id: ObjectId(id) });
+        if(!temRegistro){
+            console.log("não tem registro");
+            res.sendStatus(404);
+            return;
+        }
+        await registrosCollection.deleteOne({ _id: ObjectId(id) });
+        return res.sendStatus(201);
+    } catch (error) {
+        console.log(error);
+        res.sendStatus(500);
+    }
 }
