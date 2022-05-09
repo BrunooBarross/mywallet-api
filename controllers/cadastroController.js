@@ -2,7 +2,7 @@ import chalk from "chalk";
 import joi from "joi";
 import bcrypt from 'bcrypt';
 import { stripHtml } from "string-strip-html";
-import db from ".././db.js";
+import db from "./../db.js";
 
 export async function postCadastro(req, res) {
     const { senha } = req.body;

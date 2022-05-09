@@ -1,9 +1,7 @@
-import chalk from "chalk";
-import joi from "joi";
 import bcrypt from 'bcrypt';
 import { stripHtml } from "string-strip-html";
 import { v4 as uuid } from 'uuid';
-import db from ".././db.js";
+import db from "./../db.js";
 
 export async function postLogin(req, res) {
     const { senha } = req.body;

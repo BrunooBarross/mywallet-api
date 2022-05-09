@@ -1,4 +1,4 @@
-import db from ".././db.js";
+import db from "./../db.js";
 import { ObjectId } from "mongodb";
 
 export async function postRegistro(req, res){
