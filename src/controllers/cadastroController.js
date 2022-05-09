@@ -5,29 +5,9 @@ import { stripHtml } from "string-strip-html";
 import db from ".././db.js";
 
 export async function postCadastro(req, res) {
-    const { senha, verificarSenha } = req.body;
+    const { senha } = req.body;
     const nome = stripHtml(req.body.nome).result.trim();
     const email = stripHtml(req.body.email).result.trim();
-
-    if (senha !== verificarSenha) {
-        console.log('senhas diferentes')
-        res.sendStatus(406);
-        return;
-    }
-
-    const schema = joi.object({
-        nome: joi.string().required(),
-        email: joi.string().email().required(),
-        senha: joi.string().required(),
-        verificarSenha: joi.string().required()
-    })
-    const validacao = schema.validate(req.body, { abortEarly: false })
-
-    if (validacao.error) {
-        console.log(chalk.bold.red("Erro joi cadastro"), validacao.error.details)
-        res.sendStatus(422);
-        return;
-    }
 
     const senhaCriptografada = bcrypt.hashSync(senha, 10);
     try {
